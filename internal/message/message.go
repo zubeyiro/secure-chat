@@ -7,32 +7,37 @@ import (
 
 type Message struct {
 	Command string
-	Target  string
+	Owner   string
 	Message string
 }
 
-func NewMessage(command, target, message string) *Message {
+func NewMessage(command, owner, message string) *Message {
 	return &Message{
 		Command: command,
-		Target:  target,
+		Owner:   owner,
 		Message: message,
 	}
 }
 
 func (msg *Message) Serialize() string {
-	return fmt.Sprintf("%s,%s,%s\n", msg.Command, msg.Target, msg.Message)
+	m := fmt.Sprintf("%s,%s,%s", msg.Command, msg.Owner, msg.Message)
+	m = strings.Replace(m, "\n", "", -1)
+
+	return fmt.Sprintf("%s\n", m)
 }
 
 func Deserialize(msg string) *Message {
 	parts := strings.Split(strings.TrimSuffix(msg, "\n"), ",")
 
 	if len(parts) < 3 {
-		panic(fmt.Sprintf("Invalid Message %s", string(msg)))
+		fmt.Printf("Invalid Message %s\n", string(msg))
+
+		return nil
 	}
 
 	return &Message{
 		Command: parts[0],
-		Target:  parts[1],
+		Owner:   parts[1],
 		Message: strings.Join(parts[2:], ","),
 	}
 }

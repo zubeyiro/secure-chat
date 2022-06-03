@@ -4,6 +4,8 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
+	"crypto/x509"
+	"encoding/base64"
 )
 
 func GenerateKeyPair() (*rsa.PrivateKey, *rsa.PublicKey) {
@@ -34,4 +36,22 @@ func Decrypt(message []byte, privateKey *rsa.PrivateKey) ([]byte, error) {
 	}
 
 	return decryptedMessage, nil
+}
+
+func ExportPublicKeyBase64(key *rsa.PublicKey) string {
+	return base64.StdEncoding.EncodeToString(x509.MarshalPKCS1PublicKey(key))
+}
+
+func ParsePublicKeyFromBase64(key string) *rsa.PublicKey {
+	b, err := base64.StdEncoding.DecodeString(key)
+	if err != nil {
+		panic(err)
+	}
+
+	publicKey, err := x509.ParsePKCS1PublicKey(b)
+	if err != nil {
+		panic(err)
+	}
+
+	return publicKey
 }
