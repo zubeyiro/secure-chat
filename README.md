@@ -1,29 +1,27 @@
 # Secure Chat CLI
 Secure chat application written in Go, using public/private key encryption
 
-## Installation and Run
-
-###### Download dependecies
+## Download dependecies
 ```
 make vendor
 ```
 
-###### Test
+## Test
 ```
 make test
 ```
 
-###### Run all together (Macos only)
+## Run all together (Macos only)
 ```
 make simulation
 ```
 
-###### Run server
+## Run server
 ```
 make server
 ```
 
-###### Run user
+## Run user
 ```
 make user
 ```
