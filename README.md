@@ -13,7 +13,7 @@ make test
 
 ## Run all together (Macos only)
 ```
-make simulation
+make simulate
 ```
 
 ## Run server
