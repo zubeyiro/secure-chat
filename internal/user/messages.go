@@ -17,7 +17,7 @@ func authMessage(str string) (*message.Message, error) {
 
 		return nil, errors.New("invalid username")
 	}
-	return message.NewMessage(events.AUTH_REQUEST, str, security.ExportPublicKeyBase64(publicKey)), nil
+	return message.NewMessage(events.AUTH_REQUEST, str, security.ExportPublicKeyBase64(&privateKey.PublicKey)), nil
 }
 
 func chatMessage(str string) (*message.Message, error) {
@@ -56,5 +56,5 @@ func chatMessage(str string) (*message.Message, error) {
 		return nil, errors.New("error while encrypting the message")
 	}
 
-	return message.NewMessage(events.NEW_MESSAGE, recipient, string(encrypted)), nil
+	return message.NewMessage(events.NEW_MESSAGE, recipient, encrypted), nil
 }

@@ -35,9 +35,16 @@ func Deserialize(msg string) *Message {
 		return nil
 	}
 
+	metadataLength := len(parts[0]) + len(parts[1]) + 2
+	content := ""
+
+	if len(msg) > metadataLength {
+		content = strings.Trim(msg[(len(parts[0])+len(parts[1])+2):], " ")
+	}
+
 	return &Message{
 		Command: parts[0],
 		Owner:   parts[1],
-		Message: strings.Join(parts[2:], ","),
+		Message: content,
 	}
 }

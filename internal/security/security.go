@@ -8,34 +8,36 @@ import (
 	"encoding/base64"
 )
 
-func GenerateKeyPair() (*rsa.PrivateKey, *rsa.PublicKey) {
+func GenerateKeyPair() *rsa.PrivateKey {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 
 	if err != nil {
 		panic(err)
 	}
 
-	return privateKey, &privateKey.PublicKey
+	return privateKey
 }
 
-func Encrypt(message []byte, publicKey *rsa.PublicKey) ([]byte, error) {
+func Encrypt(message []byte, publicKey *rsa.PublicKey) (string, error) {
 	encryptedMessage, err := rsa.EncryptOAEP(sha256.New(), rand.Reader, publicKey, message, nil)
 
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return encryptedMessage, nil
+	return base64.StdEncoding.EncodeToString(encryptedMessage), nil
 }
 
-func Decrypt(message []byte, privateKey *rsa.PrivateKey) ([]byte, error) {
-	decryptedMessage, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, privateKey, message, nil)
+func Decrypt(message string, privateKey *rsa.PrivateKey) (string, error) {
+	bytes, _ := base64.StdEncoding.DecodeString(message)
+
+	decryptedMessage, err := rsa.DecryptOAEP(sha256.New(), rand.Reader, privateKey, bytes, nil)
 
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return decryptedMessage, nil
+	return string(decryptedMessage), nil
 }
 
 func ExportPublicKeyBase64(key *rsa.PublicKey) string {
@@ -44,11 +46,13 @@ func ExportPublicKeyBase64(key *rsa.PublicKey) string {
 
 func ParsePublicKeyFromBase64(key string) *rsa.PublicKey {
 	b, err := base64.StdEncoding.DecodeString(key)
+
 	if err != nil {
 		panic(err)
 	}
 
 	publicKey, err := x509.ParsePKCS1PublicKey(b)
+
 	if err != nil {
 		panic(err)
 	}

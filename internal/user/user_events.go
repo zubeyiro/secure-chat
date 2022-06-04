@@ -9,7 +9,7 @@ import (
 )
 
 func userListReceived(msg *message.Message) {
-	if len(msg.Message) > 0 {
+	if len(msg.Message) > 1 {
 		for _, v := range strings.Split(msg.Message, "|") {
 			user := strings.Split(v, ",")
 
@@ -40,7 +40,7 @@ func removeUser(name string) {
 	delete(users, name)
 }
 func messageRecieved(msg *message.Message) {
-	m, err := security.Decrypt([]byte(msg.Message), privateKey)
+	m, err := security.Decrypt(msg.Message, privateKey)
 
 	if err != nil {
 		fmt.Println("Error while decrypting the message")

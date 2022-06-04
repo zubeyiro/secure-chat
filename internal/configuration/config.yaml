@@ -1,0 +1,3 @@
+server:
+  type: tcp
+  port: ":6154"

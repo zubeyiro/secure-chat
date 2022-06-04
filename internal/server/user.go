@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/zubeyiro/secure-chat/internal/events"
@@ -19,7 +20,6 @@ type User struct {
 	publicKey     *rsa.PublicKey
 	reader        *bufio.Reader
 	writer        *bufio.Writer
-	incoming      chan *message.Message
 	outgoing      chan string
 	connectedOn   int64
 	lastHeartbeat int64
@@ -40,7 +40,6 @@ func newUser(name string, publicKey string, conn net.Conn) *User {
 		publicKey:     security.ParsePublicKeyFromBase64(publicKey),
 		reader:        bufio.NewReader(conn),
 		writer:        bufio.NewWriter(conn),
-		incoming:      make(chan *message.Message),
 		outgoing:      make(chan string),
 		connectedOn:   time.Now().Unix(),
 		lastHeartbeat: time.Now().Unix(),
@@ -59,14 +58,14 @@ func (user *User) read() {
 			break
 		}
 		msg := message.Deserialize(str)
+		fmt.Println("USER")
+		fmt.Println(str)
 
 		switch msg.Command {
 		case events.NEW_MESSAGE:
-			user.sendMessageToUser(msg.Owner, msg.Message)
+			user.relayMessageToUser(msg.Owner, msg.Message)
 		}
-		user.incoming <- msg
 	}
-	close(user.incoming)
 
 	user.logout()
 }
@@ -90,4 +89,77 @@ func (user *User) write() {
 	}
 
 	user.logout()
+}
+
+func (user *User) login() {
+	users[user.id] = user
+	userMap[user.name] = user.id
+
+	go user.read()
+	go user.write()
+
+	fmt.Printf("%s logged in\n", user.name)
+	fmt.Printf("Logged in users: %d\n", len(users))
+
+	user.sendUserList()
+	user.loggedIn()
+}
+
+func (user *User) logout() {
+	fmt.Printf("%s logged out\n", user.name)
+	delete(users, user.id)
+	delete(userMap, user.name)
+	fmt.Printf("Logged in users: %d\n", len(users))
+
+	user.loggedOut()
+}
+
+// inform other users about new joiner
+func (user *User) loggedIn() {
+	msg := message.NewMessage(events.NEW_USER_CONNECTED, user.name, security.ExportPublicKeyBase64(user.publicKey))
+
+	for _, v := range users {
+		if v.id == user.id {
+			continue
+		}
+
+		v.sendMessage(msg)
+	}
+}
+
+// inform other users about user left
+func (user *User) loggedOut() {
+	msg := message.NewMessage(events.USER_DISCONNECTED, user.name, "")
+
+	for _, v := range users {
+		if v.id == user.id {
+			continue
+		}
+
+		v.sendMessage(msg)
+	}
+}
+
+// share user list with new joiner
+func (user *User) sendUserList() {
+	if len(users) == 0 {
+		return
+	}
+
+	msgContent := []string{} // format: name,publicKey|name,publicKey
+
+	for _, v := range users {
+		if v.id == user.id {
+			continue
+		}
+
+		msgContent = append(msgContent, fmt.Sprintf("%s,%s", v.name, security.ExportPublicKeyBase64(v.publicKey)))
+	}
+
+	msg := message.NewMessage(events.USER_LIST, "", strings.Join(msgContent, "|"))
+	user.sendMessage(msg)
+}
+
+func (user *User) relayMessageToUser(who string, msg string) {
+	getUserByName(who).sendMessage(message.NewMessage(events.NEW_MESSAGE, user.name, msg))
 }

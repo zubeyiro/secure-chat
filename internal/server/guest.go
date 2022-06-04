@@ -15,7 +15,6 @@ type Guest struct {
 	conn          net.Conn
 	reader        *bufio.Reader
 	writer        *bufio.Writer
-	incoming      chan *message.Message
 	outgoing      chan string
 	connectedOn   int64
 	lastHeartbeat int64
@@ -29,7 +28,6 @@ func newGuest(conn net.Conn) *Guest {
 		conn:          conn,
 		reader:        bufio.NewReader(conn),
 		writer:        bufio.NewWriter(conn),
-		incoming:      make(chan *message.Message),
 		outgoing:      make(chan string),
 		connectedOn:   time.Now().Unix(),
 		lastHeartbeat: time.Now().Unix(),
@@ -56,35 +54,38 @@ func (guest *Guest) read() {
 		if err != nil {
 			fmt.Printf("%s - %s\n", guest.id, err.Error())
 
-			if err.Error() == "EOF" {
-				guest.remove()
-			}
 			break
 		}
 		msg := message.Deserialize(str)
+		fmt.Println("GUEST")
 		fmt.Println(str)
 
 		switch msg.Command {
 		case events.AUTH_REQUEST:
-			fmt.Println("Auth", msg.Owner, auth(msg.Owner))
 			if auth(msg.Owner) {
 				guest.sendMessage(message.NewMessage(events.AUTH_SUCCEEDED, "", msg.Owner))
 				newUser(msg.Owner, msg.Message, guest.conn).login()
 				guest.remove()
+				goto DONE
 			} else {
 				guest.sendMessage(message.NewMessage(events.AUTH_FAILED, "", ""))
 			}
 		}
-		guest.incoming <- msg
 	}
 
-	close(guest.incoming)
+DONE:
+	guest.outgoing <- "STOP"
 
 	guest.remove()
 }
 
 func (guest *Guest) write() {
 	for str := range guest.outgoing {
+
+		if str == "STOP" {
+			goto DONE
+		}
+
 		_, err := guest.writer.WriteString(str)
 
 		if err != nil {
@@ -103,6 +104,8 @@ func (guest *Guest) write() {
 			break
 		}
 	}
+
+DONE:
 
 	guest.remove()
 }
